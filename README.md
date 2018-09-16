@@ -45,7 +45,7 @@ Must be a path with a (zero) positional string argument (.NET String.Format) tha
 {
     "commandUri": "https://soundboard.example.org/play/{0}",
     "bindings": {
-        "ctrl+shift+g": "goal"
+        "lctrl+lshift+g": "goal"
     }
 }
 ```
@@ -75,5 +75,6 @@ The following keys are available for binding:
 
 Modifiers can be combined with +:
 
-    ctrl+shift+a
-    alt+f4
+    lctrl+lshift+a
+    lmenu+f4
+   
