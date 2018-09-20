@@ -2,20 +2,15 @@
 using Microsoft.Extensions.Options;
 using Soundboard.Options;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security.Permissions;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
-using System.Threading.Tasks;
-using System.Windows.Forms;
 
 namespace Soundboard.Services
 {
@@ -109,6 +104,7 @@ namespace Soundboard.Services
         private readonly ILogger _logger;
         private readonly IOptions<SoundboardOptions> _options;
         private readonly IOptionsMonitor<SoundboardOptions> _optionsMonitor;
+        private Win32.LowLevelKeyboardProc _hookProc;
         private Win32.HookHandle _hook;
 
         public event EventHandler<KeyBindingActivatedEventArgs> BindingActivated;
@@ -134,7 +130,8 @@ namespace Soundboard.Services
             using (var process = Process.GetCurrentProcess())
             using (var processModule = process.MainModule)
             {
-                _hook = Win32.SetWindowsHookEx(Win32.WH_KEYBOARD_LL, OnKeyboardEvent,
+                _hookProc = OnKeyboardEvent;
+                _hook = Win32.SetWindowsHookEx(Win32.WH_KEYBOARD_LL, _hookProc,
                     Win32.GetModuleHandle(processModule.ModuleName), 0);
             }
         }
@@ -227,6 +224,7 @@ namespace Soundboard.Services
 
                 if (_hook != null && !_hook.IsInvalid)
                 {
+                    _hookProc = null;
                     _hook.Dispose();
                 }
             }
@@ -256,13 +254,19 @@ namespace Soundboard.Services
 
         private void OnKeyDown(int key)
         {
+            _lock.EnterWriteLock();
             _keys.Add(key);
+            _lock.ExitWriteLock();
+
             _reset.Set();
         }
 
         private void OnKeyUp(int key)
         {
+            _lock.EnterWriteLock();
             _keys.Remove(key);
+            _lock.ExitWriteLock();
+
             _reset.Set();
         }
 
